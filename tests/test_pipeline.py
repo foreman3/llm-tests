@@ -1,8 +1,6 @@
 import unittest
 import pandas as pd
 from llm_pipeline.pipeline import LLMCallStep, FixedProcessingStep, DataPipeline, FilterStep
-from data_preparation.documents import Document
-from data_preparation.version_one_backlog_item import VersionOneBacklogItem
 from typing import List
 
 
