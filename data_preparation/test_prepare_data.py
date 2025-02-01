@@ -22,7 +22,11 @@ class TestDataPreparer(unittest.TestCase):
 
     def test_sanitize_data(self):
         # Add test logic for sanitize_data when implemented
-        pass
+        self.assertEqual(0, 0)
+
+    def test_query(self):
+        result = self.data_preparer.retrieve_data('Donald Trump')
+        print(result)
 
 if __name__ == '__main__':
     unittest.main()

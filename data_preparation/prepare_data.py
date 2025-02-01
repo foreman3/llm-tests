@@ -8,7 +8,7 @@ class DataPreparer:
             'format': 'json'
         }
         response = requests.get(url, params=params)
-        if response.status_code == 200:
+        if (response.status_code == 200 or response.status_code == 202) :
             data = response.json()
             if 'RelatedTopics' in data and len(data['RelatedTopics']) > 0:
                 return data['RelatedTopics'][0]['Text']

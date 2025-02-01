@@ -1,0 +1,4 @@
+id,title,description,acceptance_criteria
+B-12223,Query Service improvements,Find and resolve the slowness on the query service.,Query service returns data in less than 2 seconds.
+B-29990,Change Order Date field name to Shipping Date,'On the Input form the Order Date label is not correct; this should be shipping date.',Label is updated.
+B-56444,Add support for new data type to back end,The back end service should be able to handle the new data type.,Azure data is now able to be processed.
