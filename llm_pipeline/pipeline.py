@@ -37,17 +37,26 @@ class LLMCallStep(PipelineStep):
         self.prompt_template = prompt_template
         self.output_key = output_key
         self.fields = fields
-        self.system_prompt= """You are evaluating records. The user will submit a record to be evalated, and you should response will only the evalution. 
-        Respond only with the evalution, and other terms or formatting.
+        self.system_prompt = """You are evaluating records. The user will submit a record to be evaluated, and you should respond with only the evaluation. 
+        Respond only with the evaluation, and no other terms or formatting.
         
-        The requested evalution is:"""
-        self.client =  OpenAI()
+        The requested evaluation is:"""
+        self.client = OpenAI()
     
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
-        # Generate the prompt for each row using the provided fields.
-        df.loc[:, 'prompt'] = df.apply(
-            lambda row: self.prompt_template.format(**row[self.fields]),
-            axis=1
+        # Generate the record details for each row using the provided fields or all fields.
+        def create_record_details(row):
+            if self.fields:
+                details = {field: row[field] for field in self.fields}
+            else:
+                details = row.to_dict()
+            return "\n".join([f"{key}: {value}" for key, value in details.items()])
+        
+        df.loc[:, 'record_details'] = df.apply(create_record_details, axis=1)
+        
+        # Generate the prompt for each row using the record details.
+        df.loc[:, 'prompt'] = df['record_details'].apply(
+            lambda details: self.prompt_template.format(record_details=details)
         )
         
         # Define a helper function to call the LLM for each prompt.
@@ -65,8 +74,8 @@ class LLMCallStep(PipelineStep):
         # Use the helper function with .apply() to get the output.
         df.loc[:, self.output_key] = df['prompt'].apply(get_llm_response)
         
-        # Optionally, drop the temporary prompt column.
-        df.drop(columns=['prompt'], inplace=True)
+        # Optionally, drop the temporary columns.
+        df.drop(columns=['record_details', 'prompt'], inplace=True)
         
         return df
 
@@ -74,11 +83,13 @@ class FixedProcessingStep(PipelineStep):
     """
     A processing step that uses a fixed function to process the DataFrame.
     """
-    def __init__(self, process_function: Callable[[pd.DataFrame], pd.DataFrame]):
+    def __init__(self, process_function: Callable[[pd.DataFrame], pd.Series], output_key: str):
         self.process_function = process_function
+        self.output_key = output_key
 
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
-        return self.process_function(df)
+        df[self.output_key] = self.process_function(df)
+        return df
 
 class FilterStep(PipelineStep):
     """

@@ -17,20 +17,17 @@ class TestLLMPipeline(unittest.TestCase):
         # Define a couple of processing steps.
 
         # Example fixed processing step: add a new column that shows the word count of the description.
-        def count_words(df: pd.DataFrame) -> pd.DataFrame:
-            df['word_count'] = df['description'].apply(lambda x: len(x.split()))
-            return df
+        def count_words(df: pd.DataFrame) -> pd.Series:
+            return df['description'].apply(lambda x: len(x.split()))
 
-        fixed_step = FixedProcessingStep(count_words)
+        fixed_step = FixedProcessingStep(count_words, output_key="word_count")
 
         # Example LLM processing step: use an LLM to extract potential UI change details.
         llm_step = LLMCallStep(
             prompt_template="""Determine if the following development story likely resulted in a UI update or not.
             respond back with only 'yes' or 'no'.
 
-            Title: {title}
-            Description: {description}
-            Acceptance Criteria: {acceptance_criteria}""",
+            {record_details}""",
             output_key="ui_change",
             fields=["title", "description", "acceptance_criteria"]
         )
