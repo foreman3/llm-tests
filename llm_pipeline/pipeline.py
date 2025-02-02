@@ -4,6 +4,7 @@ from typing import Callable, List
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+import numpy as np
 
 load_dotenv()
 
@@ -16,7 +17,6 @@ class PipelineStep(ABC):
     Abstract base class for a pipeline processing step.
     Each step should implement the process() method.
     """
-
     @abstractmethod
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -37,10 +37,11 @@ class LLMCallStep(PipelineStep):
         self.prompt_template = prompt_template
         self.output_key = output_key
         self.fields = fields
-        self.system_prompt = """You are evaluating records. The user will submit a record to be evaluated, and you should respond with only the evaluation. 
-        Respond only with the evaluation, and no other terms or formatting.
-        
-        The requested evaluation is:"""
+        self.system_prompt = (
+            "You are evaluating records. The user will submit a record to be evaluated, and you should respond with only the evaluation. \n"
+            "Respond only with the evaluation, and no other terms or formatting.\n\n"
+            "The requested evaluation is:"
+        )
         self.client = OpenAI()
     
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -100,6 +101,115 @@ class FilterStep(PipelineStep):
 
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
         return df.loc[self.filter_function(df)]
+
+##############################################################################
+# New Processor: GenerateEmbeddingsStep
+##############################################################################
+
+
+def openai_embedding_function(text: str) -> List[float]:
+    """
+    Generate an embedding vector for the given text using OpenAI's embeddings model.
+    
+    Args:
+        text (str): The input text to embed.
+        
+    Returns:
+        List[float]: The embedding vector.
+    """
+    client = OpenAI()
+    try:
+        response = client.embeddings.create(
+            input=f"{text}",
+            model="text-embedding-3-small"
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        print("Error generating embedding:", e)
+        return []
+
+
+class GenerateEmbeddingsStep(PipelineStep):
+    """
+    A processing step that generates an embedding for each record using a supplied
+    embedding function, and adds the result as a new column in the DataFrame.
+    
+    You can specify the output_key so that you can generate multiple embeddings.
+    Persistence or caching should be handled outside this processor.
+    """
+    def __init__(self,
+                 embedding_function: Callable[[str], List[float]] = openai_embedding_function,
+                 output_key: str = "embedding",
+                 fields: List[str] = None):
+        """
+        :param embedding_function: A function that takes a text string and returns an embedding vector (list of floats).
+        :param output_key: Column name where the embedding will be stored.
+        :param fields: List of DataFrame column names to combine for the embedding. If None, all columns are used.
+        """
+        self.embedding_function = embedding_function
+        self.output_key = output_key
+        self.fields = fields
+
+    def process(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Define a helper to get the text for embedding.
+        def get_text(row):
+            if self.fields:
+                return " ".join([str(row[field]) for field in self.fields])
+            else:
+                # Use all columns (converted to string)
+                return " ".join(row.astype(str))
+        
+        # Compute the embedding for each row and store in the specified output_key.
+        df.loc[:, self.output_key] = df.apply(lambda row: self.embedding_function(get_text(row)), axis=1)
+        return df
+
+##############################################################################
+# New Processor: kNNFilterStep
+##############################################################################
+
+class kNNFilterStep(PipelineStep):
+    """
+    A processing step that filters the DataFrame to the top k records whose embeddings
+    are closest (via cosine similarity) to a given query phrase.
+    """
+    def __init__(self,
+                 query: str,
+                 k: int,
+                 embedding_function: Callable[[str], List[float]] = openai_embedding_function,
+                 embedding_column: str = "embedding"):
+        """
+        :param query: The query text to compare against.
+        :param k: The number of top records to return.
+        :param embedding_function: A function that takes text and returns an embedding vector.
+                                   This should be the same function used in the GenerateEmbeddingsStep.
+        :param embedding_column: The DataFrame column that contains the embeddings.
+        """
+        self.query = query
+        self.k = k
+        self.embedding_function = embedding_function
+        self.embedding_column = embedding_column
+
+    def cosine_similarity(self, vec_a, vec_b) -> float:
+        a = np.array(vec_a)
+        b = np.array(vec_b)
+        norm_a = np.linalg.norm(a)
+        norm_b = np.linalg.norm(b)
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return np.dot(a, b) / (norm_a * norm_b)
+
+    def process(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Compute the query embedding.
+        query_embedding = self.embedding_function(self.query)
+        # Calculate cosine similarity for each row.
+        df.loc[:, 'similarity'] = df[self.embedding_column].apply(
+            lambda emb: self.cosine_similarity(emb, query_embedding)
+        )
+        # Sort by similarity in descending order and select the top k rows.
+        df_sorted = df.sort_values(by='similarity', ascending=False)
+        result_df = df_sorted.head(self.k).copy()
+        result_df.drop(columns=['similarity'], inplace=True)
+        return result_df
 
 ##############################################################################
 # 4. The Pipeline: Running Steps in Batches

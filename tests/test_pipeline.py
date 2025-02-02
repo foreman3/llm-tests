@@ -1,12 +1,12 @@
 import unittest
 import pandas as pd
-from llm_pipeline.pipeline import LLMCallStep, FixedProcessingStep, DataPipeline, FilterStep
+from llm_pipeline.pipeline import LLMCallStep, FixedProcessingStep, DataPipeline, FilterStep, GenerateEmbeddingsStep, kNNFilterStep
 from typing import List
 
 
 class TestLLMPipeline(unittest.TestCase):
 
-    def test_pipeline(self):
+    def test_classify_pipeline(self):
         # Load test data from CSV file into a DataFrame
         try:
             df = pd.read_csv('./tests/test_data_pipeline.csv')
@@ -47,6 +47,52 @@ class TestLLMPipeline(unittest.TestCase):
         # Print the results.
         print(len(processed_df))
         print(processed_df.to_string())
+
+
+    def test_gen_and_persist_embeddings(self):
+        # Load test data from CSV file into a DataFrame
+        try:
+            df = pd.read_csv('./tests/test_data_pipeline.csv')
+        except pd.errors.ParserError as e:
+            print(f"Error reading CSV file: {e}")
+            raise
+
+        # Define a couple of processing steps.
+
+        # Generate one embedding from title & description.
+        gen_embed= GenerateEmbeddingsStep(
+            output_key="embedding_title_desc",
+            fields=["title", "description"]
+        )
+
+        # Create the pipeline with all steps.
+        pipeline = DataPipeline(steps=[gen_embed], batch_size=5)
+
+        # Run the pipeline on the DataFrame.
+        processed_df = pipeline.run(df)
+        processed_df.to_pickle('./tests/test_data_pipeline_embeddings.pkl')
+
+
+    def test_reload_embeddings_and_kNN(self):
+        
+        # Reload the DataFrame.
+        reloaded_df = pd.read_pickle('./tests/test_data_pipeline_embeddings.pkl')
+
+        # Use a kNN filter on one of the embeddings:
+        knn_filter = kNNFilterStep(
+            query="improve performance",
+            k=1,
+            embedding_column="embedding_title_desc"
+        )
+
+        # Create the pipeline with all steps.
+        pipeline = DataPipeline(steps=[knn_filter], batch_size=5)
+
+        # Run the pipeline on the DataFrame.
+        processed_df = pipeline.run(reloaded_df)
+
+        print(processed_df[['id', 'title']].to_string())
+
 
 if __name__ == '__main__':
     unittest.main()
