@@ -212,30 +212,63 @@ class kNNFilterStep(PipelineStep):
         return result_df
 
 ##############################################################################
+# New Processor: LLMCallWithDataFrame
+##############################################################################
+
+class LLMCallWithDataFrame:
+    """
+    A class that takes an entire DataFrame, constructs a prompt with its content,
+    and calls the LLM. It can optionally use a list of fields to include in the prompt.
+    """
+    def __init__(self, prompt_template: str, fields: List[str] = None):
+        self.prompt_template = prompt_template
+        self.fields = fields
+        self.system_prompt = (
+            "You are processing a user request against a set of records.  Please respond to the request as directed, without any additional comments or text.\n\n"
+        )
+        self.client = OpenAI()
+
+    def create_prompt(self, df: pd.DataFrame) -> str:
+        # Generate the record details for each row using the provided fields or all fields.
+        def create_record_details(row):
+            if self.fields:
+                details = {field: row[field] for field in self.fields}
+            else:
+                details = row.to_dict()
+            return "\n".join([f"{key}: {value}" for key, value in details.items()])
+        
+        record_details = df.apply(create_record_details, axis=1).tolist()
+        combined_details = "\n\n".join([f"# new record\n{details}" for details in record_details])
+        
+        # Generate the full prompt using the combined record details.
+        full_prompt = self.prompt_template.format(record_details=combined_details)
+        return full_prompt
+
+    def call_llm(self, df: pd.DataFrame) -> str:
+        prompt = self.create_prompt(df)
+        chat_completion = self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        # Return the LLM's response.
+        return chat_completion.choices[0].message.content.strip()
+
+##############################################################################
 # 4. The Pipeline: Running Steps in Batches
 ##############################################################################
 
 class DataPipeline:
     """
-    A generic pipeline to process data in batches.
-    The pipeline runs each batch through each of the configured steps.
+    A generic pipeline to process data.
+    The pipeline runs the data through each of the configured steps.
     """
-    def __init__(self, steps: List[PipelineStep], batch_size: int = 100):
+    def __init__(self, steps: List[PipelineStep]):
         self.steps = steps
-        self.batch_size = batch_size
 
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
-        processed_df = pd.DataFrame()
-        for batch in self._batch_data(df, self.batch_size):
-            processed_batch = self._process_batch(batch)
-            processed_df = pd.concat([processed_df, processed_batch], ignore_index=True)
-        return processed_df
-
-    def _batch_data(self, df: pd.DataFrame, batch_size: int) -> List[pd.DataFrame]:
-        # Create a copy of each slice to avoid SettingWithCopyWarning when modifying the batch.
-        return [df.iloc[i:i + batch_size].copy() for i in range(0, len(df), batch_size)]
-
-    def _process_batch(self, batch: pd.DataFrame) -> pd.DataFrame:
         for step in self.steps:
-            batch = step.process(batch)
-        return batch
+            df = step.process(df)
+        return df

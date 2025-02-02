@@ -1,0 +1,19 @@
+Metadata-Version: 2.2
+Name: llm-pipelines
+Version: 0.1.0
+Summary: A reusable library for LLM-based pipelines.
+Home-page: https://github.com/foreman3/llm-tests
+Author: Bob Foreman
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Requires-Dist: pandas
+Requires-Dist: openai
+Requires-Dist: numpy
+Dynamic: author
+Dynamic: classifier
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

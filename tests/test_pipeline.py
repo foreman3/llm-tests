@@ -1,6 +1,8 @@
 import unittest
 import pandas as pd
-from llm_pipeline.pipeline import LLMCallStep, FixedProcessingStep, DataPipeline, FilterStep, GenerateEmbeddingsStep, kNNFilterStep
+from llm_pipeline.pipeline import LLMCallStep, FixedProcessingStep, DataPipeline, FilterStep, GenerateEmbeddingsStep, kNNFilterStep, LLMCallWithDataFrame
+import csv
+import csv
 from typing import List
 
 
@@ -9,9 +11,12 @@ class TestLLMPipeline(unittest.TestCase):
     def test_classify_pipeline(self):
         # Load test data from CSV file into a DataFrame
         try:
-            df = pd.read_csv('./tests/test_data_pipeline.csv')
+            df = pd.read_csv('./tests/test_data_pipeline.csv', quoting=csv.QUOTE_ALL)
         except pd.errors.ParserError as e:
             print(f"Error reading CSV file: {e}")
+            raise
+        except FileNotFoundError as e:
+            print(f"CSV file not found: {e}")
             raise
 
         # Define a couple of processing steps.
@@ -39,20 +44,20 @@ class TestLLMPipeline(unittest.TestCase):
         filter_step = FilterStep(filter_function)
 
         # Create the pipeline with all steps.
-        pipeline = DataPipeline(steps=[fixed_step, llm_step, filter_step], batch_size=5)
+        pipeline = DataPipeline(steps=[fixed_step, llm_step, filter_step])
 
         # Run the pipeline on the DataFrame.
         processed_df = pipeline.run(df)
 
         # Print the results.
         print(len(processed_df))
-        print(processed_df.to_string())
+        print(processed_df[['id', 'title']].to_string())
 
 
     def test_gen_and_persist_embeddings(self):
         # Load test data from CSV file into a DataFrame
         try:
-            df = pd.read_csv('./tests/test_data_pipeline.csv')
+            df = pd.read_csv('./tests/test_data_pipeline.csv', quoting=csv.QUOTE_ALL)
         except pd.errors.ParserError as e:
             print(f"Error reading CSV file: {e}")
             raise
@@ -66,7 +71,7 @@ class TestLLMPipeline(unittest.TestCase):
         )
 
         # Create the pipeline with all steps.
-        pipeline = DataPipeline(steps=[gen_embed], batch_size=5)
+        pipeline = DataPipeline(steps=[gen_embed])
 
         # Run the pipeline on the DataFrame.
         processed_df = pipeline.run(df)
@@ -80,18 +85,26 @@ class TestLLMPipeline(unittest.TestCase):
 
         # Use a kNN filter on one of the embeddings:
         knn_filter = kNNFilterStep(
-            query="improve performance",
+            query="input form",
             k=1,
             embedding_column="embedding_title_desc"
         )
 
         # Create the pipeline with all steps.
-        pipeline = DataPipeline(steps=[knn_filter], batch_size=5)
+        pipeline = DataPipeline(steps=[knn_filter])
 
         # Run the pipeline on the DataFrame.
         processed_df = pipeline.run(reloaded_df)
 
         print(processed_df[['id', 'title']].to_string())
+
+        llm_eval = LLMCallWithDataFrame(
+            prompt_template="""What UIs changes are being implemented?'.
+
+            {record_details}""",
+            fields=["title", "description", "acceptance_criteria"],
+        )
+        print(llm_eval.call_llm(processed_df))
 
 
 if __name__ == '__main__':
