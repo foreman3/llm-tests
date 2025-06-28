@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 import os
 import hashlib
 import numpy as np
+import json
+import asyncio
+from tools.utils import log_message, validate_input
 
 load_dotenv()
 
@@ -30,14 +33,26 @@ class PipelineStep(ABC):
 ##############################################################################
 
 class LLMCallStep(PipelineStep):
-    """
-    A processing step that builds a prompt (using the DataFrame’s data),
-    calls an LLM, and stores the response in the DataFrame.
-    """
-    def __init__(self, prompt_template: str, output_key: str = "llm_output", fields: List[str] = None):
+    """Call an LLM for each record with optional caching."""
+
+    def __init__(
+        self,
+        prompt_template: str,
+        output_key: str = "llm_output",
+        fields: List[str] = None,
+        cache_path: str | None = None,
+    ):
         self.prompt_template = prompt_template
         self.output_key = output_key
         self.fields = fields
+        self.cache_path = cache_path
+        self.cache = {}
+        if cache_path and os.path.exists(cache_path):
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    self.cache = json.load(f)
+            except Exception:
+                self.cache = {}
         self.system_prompt = (
             "You are evaluating records. The user will submit a record to be evaluated, and you should respond with only the evaluation. \n"
             "Respond only with the evaluation, and no other terms or formatting.\n\n"
@@ -45,7 +60,7 @@ class LLMCallStep(PipelineStep):
         )
         api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=api_key) if api_key else None
-    
+
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
         # Generate the record details for each row using the provided fields or all fields.
         def create_record_details(row):
@@ -62,26 +77,84 @@ class LLMCallStep(PipelineStep):
             lambda details: self.prompt_template.format(record_details=details)
         )
         
-        # Define a helper function to call the LLM for each prompt.
+        # Define a helper function to call the LLM for each prompt with caching.
         def get_llm_response(prompt: str) -> str:
+            if prompt in self.cache:
+                return self.cache[prompt]
             if self.client is None:
                 # Simple offline heuristic
-                return "yes" if "ui" in prompt.lower() else "no"
-            chat_completion = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            return chat_completion.choices[0].message.content.strip()
+                response = "yes" if "ui" in prompt.lower() else "no"
+            else:
+                chat_completion = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": self.system_prompt},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                response = chat_completion.choices[0].message.content.strip()
+            self.cache[prompt] = response
+            if self.cache_path:
+                try:
+                    with open(self.cache_path, "w", encoding="utf-8") as f:
+                        json.dump(self.cache, f)
+                except Exception:
+                    pass
+            return response
         
         # Use the helper function with .apply() to get the output.
         df.loc[:, self.output_key] = df['prompt'].apply(get_llm_response)
         
         # Optionally, drop the temporary columns.
         df.drop(columns=['record_details', 'prompt'], inplace=True)
-        
+
+        return df
+
+    async def process_async(self, df: pd.DataFrame) -> pd.DataFrame:
+        def create_record_details(row):
+            if self.fields:
+                details = {field: row[field] for field in self.fields}
+            else:
+                details = row.to_dict()
+            return "\n".join([f"{key}: {value}" for key, value in details.items()])
+
+        df = df.copy()
+        df.loc[:, 'record_details'] = df.apply(create_record_details, axis=1)
+        df.loc[:, 'prompt'] = df['record_details'].apply(
+            lambda details: self.prompt_template.format(record_details=details)
+        )
+
+        async def call(prompt: str) -> str:
+            return await asyncio.to_thread(get_llm_response, prompt)
+
+        def get_llm_response(prompt: str) -> str:
+            if prompt in self.cache:
+                return self.cache[prompt]
+            if self.client is None:
+                response = "yes" if "ui" in prompt.lower() else "no"
+            else:
+                chat_completion = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": self.system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                )
+                response = chat_completion.choices[0].message.content.strip()
+            self.cache[prompt] = response
+            if self.cache_path:
+                try:
+                    with open(self.cache_path, "w", encoding="utf-8") as f:
+                        json.dump(self.cache, f)
+                except Exception:
+                    pass
+            return response
+
+        responses = await asyncio.gather(
+            *(call(p) for p in df['prompt'].tolist())
+        )
+        df.loc[:, self.output_key] = responses
+        df.drop(columns=['record_details', 'prompt'], inplace=True)
         return df
 
 class FixedProcessingStep(PipelineStep):
@@ -267,6 +340,21 @@ class LLMCallWithDataFrame:
         return chat_completion.choices[0].message.content.strip()
 
 ##############################################################################
+# Summarization/Report Generation Step
+##############################################################################
+
+class SummarizationStep(PipelineStep):
+    """Generate a summary for the entire DataFrame."""
+
+    def __init__(self, prompt_template: str, fields: List[str] | None = None):
+        self.llm = LLMCallWithDataFrame(prompt_template, fields)
+        self.summary: str = ""
+
+    def process(self, df: pd.DataFrame) -> pd.DataFrame:
+        self.summary = self.llm.call_llm(df)
+        return df
+
+##############################################################################
 # 4. The Pipeline: Running Steps in Batches
 ##############################################################################
 
@@ -279,6 +367,23 @@ class DataPipeline:
         self.steps = steps
 
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
+        validate_input(df, pd.DataFrame)
         for step in self.steps:
+            log_message(f"Running step {step.__class__.__name__}")
             df = step.process(df)
+            validate_input(df, pd.DataFrame)
+        return df
+
+class AsyncDataPipeline(DataPipeline):
+    """Run pipeline steps asynchronously when possible."""
+
+    async def run(self, df: pd.DataFrame) -> pd.DataFrame:  # type: ignore[override]
+        validate_input(df, pd.DataFrame)
+        for step in self.steps:
+            log_message(f"Running step {step.__class__.__name__} asynchronously")
+            if hasattr(step, "process_async"):
+                df = await step.process_async(df)
+            else:
+                df = await asyncio.to_thread(step.process, df)
+            validate_input(df, pd.DataFrame)
         return df
