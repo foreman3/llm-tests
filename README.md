@@ -58,6 +58,7 @@ llm-orchestration
 - **Plugin architecture**: additional `PipelineStep` classes can be discovered from a plugin directory.
 - **Agentic goal step**: `AgenticGoalStep` now supports multi-step tool use and can load built-in MCP tools for advanced agent behavior.
 - **MCP servers**: remote MCP servers can be listed for use by `AgenticGoalStep` to augment local tools.
+- **MCP tool discovery**: `AgenticGoalStep` automatically queries remote MCP servers for available tools when possible.
 
 ## Testing
 The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `LLMPipeline` class.

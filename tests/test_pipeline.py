@@ -154,12 +154,26 @@ class TestAgenticStep(unittest.TestCase):
         import threading, json
 
         class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == "/tools":
+                    tools = {"echo": "echo back"}
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps(tools).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length)
                 data = json.loads(body)
                 context = data.get("context", {})
-                result = {**context, "server": "called"}
+                if self.path == "/echo":
+                    result = {**context, "server": "called"}
+                else:
+                    result = {"error": "unknown"}
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
