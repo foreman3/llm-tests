@@ -45,6 +45,14 @@ llm-orchestration
   - `log_message`: Logs messages for tracking.
   - `validate_input`: Validates input data for the pipeline.
 
+### New Features
+- **Response caching**: `LLMCallStep` can persist responses to disk to avoid repeated API calls.
+- **Asynchronous pipeline**: `AsyncDataPipeline` runs steps concurrently when supported.
+- **Vector store**: `VectorStore` allows embeddings to be persisted and queried using FAISS.
+- **Data validation & logging**: `DataPipeline` automatically validates inputs and logs each step.
+- **Summarization step**: `SummarizationStep` generates a report for the entire DataFrame.
+- **Plugin architecture**: additional `PipelineStep` classes can be discovered from a plugin directory.
+
 ## Testing
 The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `LLMPipeline` class.
 
