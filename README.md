@@ -1,7 +1,7 @@
 # llm-orchestration
 
 ## Project Overview
-The `llm-orchestration` project is designed to facilitate the orchestration of large language model (LLM) processing pipelines. It includes components for data preparation, an LLM processing pipeline, and reusable tools and processors.
+The `llm-orchestration` project provides a flexible framework for building end‑to‑end pipelines around large language models (LLMs). It bundles data preparation utilities, a modular processing pipeline, and a growing collection of tools that can run either locally or via Model Context Protocol (MCP) servers. The included pipeline supports caching, asynchronous execution, embeddings, and agent-driven workflows.
 
 ## Project Structure
 ```
@@ -12,9 +12,13 @@ llm-orchestration
 ├── llm_pipeline
 │   ├── __init__.py
 │   └── process_pipeline.py
+├── mcp
+│   └── __init__.py
 ├── tools
 │   ├── __init__.py
 │   └── utils.py
+├── plugins
+│   └── <custom steps>
 ├── tests
 │   ├── __init__.py
 │   └── test_pipeline.py
@@ -52,6 +56,8 @@ llm-orchestration
 - **Data validation & logging**: `DataPipeline` automatically validates inputs and logs each step.
 - **Summarization step**: `SummarizationStep` generates a report for the entire DataFrame.
 - **Plugin architecture**: additional `PipelineStep` classes can be discovered from a plugin directory.
+- **Agentic goal step**: `AgenticGoalStep` now supports multi-step tool use and can load built-in MCP tools for advanced agent behavior.
+- **MCP servers**: remote MCP servers can be listed for use by `AgenticGoalStep` to augment local tools.
 
 ## Testing
 The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `LLMPipeline` class.
