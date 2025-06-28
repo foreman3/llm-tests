@@ -56,6 +56,15 @@ llm-orchestration
 ## Testing
 The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `LLMPipeline` class.
 
+### Running the tests
+Install the main requirements and additional test dependencies, then execute the test suite:
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pytest
+```
+
 ## Installation
 To set up the project, clone the repository and install the required dependencies:
 
