@@ -6,34 +6,39 @@ The `llm-orchestration` project provides a flexible framework for building end�
 ## Project Structure
 ```
 llm-orchestration
-├── data_preparation
-│   ├── __init__.py
-│   └── prepare_data.py
 ├── llm_pipeline
 │   ├── __init__.py
-│   └── process_pipeline.py
+│   ├── llm_methods.py
+│   ├── pipeline.py
+│   ├── plugin_loader.py
+│   └── vector_store.py
+├── monster_pipeline
+│   ├── __init__.py
+│   ├── create_embeddings.py
+│   ├── query_process.py
+│   └── data/
 ├── mcp
 │   └── __init__.py
 ├── tools
 │   ├── __init__.py
 │   └── utils.py
 ├── plugins
-│   └── <custom steps>
+│   ├── __init__.py
+│   └── example_plugin.py
 ├── tests
 │   ├── __init__.py
-│   └── test_pipeline.py
+│   ├── test_pipeline.py
+│   ├── test_data_pipeline.csv
+│   └── test_data_pipeline_embeddings.pkl
+├── AGENTS.md
 ├── requirements.txt
+├── requirements-dev.txt
+├── setup.py
 └── README.md
 ```
 
 ## Components
 
-### Data Preparation
-- **Module**: `data_preparation`
-- **Class**: `DataPreparer`
-  - **Methods**:
-    - `retrieve_data`: Fetches data from services.
-    - `sanitize_data`: Normalizes the data for processing.
 
 ### LLM Processing Pipeline
 - **Module**: `llm_pipeline`
@@ -82,7 +87,7 @@ pip install -r requirements.txt
 ```
 
 ## Usage
-After setting up the project, you can use the `DataPreparer` and `LLMPipeline` classes to prepare data and process it through the LLM pipeline. Refer to the individual module documentation for more details on usage.
+After setting up the project, you can use the `LLMPipeline` class to process data through the LLM pipeline. Refer to the individual module documentation for more details on usage.
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
