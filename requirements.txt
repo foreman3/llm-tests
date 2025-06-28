@@ -5,3 +5,4 @@ scikit-learn
 transformers
 python-dotenv
 requests
+faiss-cpu
