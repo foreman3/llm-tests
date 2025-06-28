@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="llm-pipelines",
     version="0.1.0",
-    packages=find_packages(),
+    packages=find_packages(exclude=["examples", "examples.*"]),
     install_requires=["pandas", "openai", "numpy", "requests"],
     author="Bob Foreman",
     description="A reusable library for LLM-based pipelines.",

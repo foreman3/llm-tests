@@ -22,6 +22,8 @@ llm-orchestration
 ├── tests
 │   ├── __init__.py
 │   └── test_pipeline.py
+├── examples
+│   └── monster_pipeline
 ├── requirements.txt
 └── README.md
 ```
