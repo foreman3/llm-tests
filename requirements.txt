@@ -1,5 +1,6 @@
 numpy
+openai
 pandas
 scikit-learn
 transformers
-pytest
+python-dotenv
