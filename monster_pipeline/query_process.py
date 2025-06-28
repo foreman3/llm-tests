@@ -1,6 +1,9 @@
 import pandas as pd
 from llm_pipeline.pipeline import DataPipeline, kNNFilterStep, LLMCallWithDataFrame
 import csv
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Reload the DataFrame.
@@ -19,7 +22,7 @@ pipeline = DataPipeline(steps=[knn_filter])
 # Run the pipeline on the DataFrame.
 processed_df = pipeline.run(reloaded_df)
 
-print(processed_df[['id', 'title']].to_string())
+logger.info(processed_df[['id', 'title']].to_string())
 
 llm_eval = LLMCallWithDataFrame(
     prompt_template="""What UI updates are being preformed?  Ignore records that not UI updates'.
@@ -27,4 +30,4 @@ llm_eval = LLMCallWithDataFrame(
     {record_details}""",
     fields=["title", "description", "acceptance_criteria"],
 )
-print(llm_eval.call_llm(processed_df))
+logger.info(llm_eval.call_llm(processed_df))
