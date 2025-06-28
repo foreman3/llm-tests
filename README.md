@@ -30,6 +30,8 @@ llm-orchestration
 │   ├── test_pipeline.py
 │   ├── test_data_pipeline.csv
 │   └── test_data_pipeline_embeddings.pkl
+├── examples
+│   └── monster_pipeline
 ├── AGENTS.md
 ├── requirements.txt
 ├── requirements-dev.txt
