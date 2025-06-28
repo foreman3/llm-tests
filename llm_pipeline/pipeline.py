@@ -379,6 +379,7 @@ class AgenticGoalStep(PipelineStep):
         output_key: str = "agent_output",
         use_mcp: bool = False,
         mcp_servers: List[str] | None = None,
+        discover_mcp: bool = True,
         max_steps: int = 3,
     ):
         self.goal = goal
@@ -393,26 +394,43 @@ class AgenticGoalStep(PipelineStep):
             except Exception:
                 pass
         self.mcp_servers = mcp_servers or []
+        self.discover_mcp = discover_mcp
         for i, url in enumerate(self.mcp_servers):
+            if discover_mcp:
+                try:
+                    from mcp import discover_remote_tools
+
+                    discovered = discover_remote_tools(url)
+                    if discovered:
+                        self.tools.update(discovered)
+                        continue
+                except Exception:
+                    pass
             self.tools[f"mcp_server_{i}"] = self._make_mcp_tool(url)
         self.output_key = output_key
         self.max_steps = max_steps
         api_key = os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=api_key) if api_key else None
 
-    def _make_mcp_tool(self, url: str) -> Callable[[dict, dict | None], dict]:
-        """Return a wrapper that sends context to an MCP server."""
+    def _make_mcp_tool(
+        self, url: str, name: str | None = None, desc: str | None = None
+    ) -> Callable[[dict, dict | None], dict]:
+        """Return a wrapper that sends context to an MCP server or endpoint."""
+
+        endpoint = url if name is None else f"{url.rstrip('/')}/{name}"
 
         def call(context: dict, args: dict | None = None) -> dict:
             try:
                 import requests
 
                 payload = {"context": context, "args": args or {}}
-                resp = requests.post(url, json=payload, timeout=10)
+                resp = requests.post(endpoint, json=payload, timeout=10)
                 resp.raise_for_status()
                 return resp.json()
             except Exception as exc:
                 return {"error": str(exc)}
+
+        call.__doc__ = desc
 
         return call
 
