@@ -79,7 +79,11 @@ To set up the project, clone the repository and install the required dependencie
 git clone <repository-url>
 cd llm-orchestration
 pip install -r requirements.txt
+pip install faiss-cpu  # or faiss-gpu
 ```
+
+FAISS provides the index used by `VectorStore`. If your machine has a compatible GPU you can
+replace `faiss-cpu` with `faiss-gpu`.
 
 ## Usage
 After setting up the project, you can use the `DataPreparer` and `LLMPipeline` classes to prepare data and process it through the LLM pipeline. Refer to the individual module documentation for more details on usage.
