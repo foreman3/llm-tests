@@ -1,4 +1,5 @@
 import unittest
+import os
 import pandas as pd
 from llm_pipeline.pipeline import (
     LLMCallStep,
@@ -20,11 +21,9 @@ class TestLLMPipeline(unittest.TestCase):
         # Load test data from CSV file into a DataFrame
         try:
             df = pd.read_csv("./tests/test_data_pipeline.csv", quoting=csv.QUOTE_ALL)
-        except pd.errors.ParserError as e:
-            print(f"Error reading CSV file: {e}")
+        except pd.errors.ParserError:
             raise
-        except FileNotFoundError as e:
-            print(f"CSV file not found: {e}")
+        except FileNotFoundError:
             raise
 
         # Define a couple of processing steps.
@@ -57,16 +56,16 @@ class TestLLMPipeline(unittest.TestCase):
         # Run the pipeline on the DataFrame.
         processed_df = pipeline.run(df)
 
-        # Print the results.
-        print(len(processed_df))
-        print(processed_df[["id", "title"]].to_string())
+        # Verify the results instead of printing
+        self.assertEqual(len(processed_df), 3)
+        self.assertTrue((processed_df["ui_change"].str.strip().str.lower() == "yes").all())
+        self.assertListEqual(processed_df["word_count"].tolist(), [9, 16, 13])
 
     def test_gen_and_persist_embeddings(self):
         # Load test data from CSV file into a DataFrame
         try:
             df = pd.read_csv("./tests/test_data_pipeline.csv", quoting=csv.QUOTE_ALL)
-        except pd.errors.ParserError as e:
-            print(f"Error reading CSV file: {e}")
+        except pd.errors.ParserError:
             raise
 
         # Define a couple of processing steps.
@@ -82,6 +81,11 @@ class TestLLMPipeline(unittest.TestCase):
         # Run the pipeline on the DataFrame.
         processed_df = pipeline.run(df)
         processed_df.to_pickle("./tests/test_data_pipeline_embeddings.pkl")
+
+        self.assertEqual(len(processed_df), 3)
+        self.assertIn("embedding_title_desc", processed_df.columns)
+        self.assertTrue(all(len(v) == 32 for v in processed_df["embedding_title_desc"]))
+        self.assertTrue(os.path.exists("./tests/test_data_pipeline_embeddings.pkl"))
 
     def test_reload_embeddings_and_kNN(self):
 
@@ -99,7 +103,8 @@ class TestLLMPipeline(unittest.TestCase):
         # Run the pipeline on the DataFrame.
         processed_df = pipeline.run(reloaded_df)
 
-        print(processed_df[["id", "title"]].to_string())
+        self.assertEqual(len(processed_df), 1)
+        self.assertEqual(processed_df.iloc[0]["id"], "B-29990")
 
         llm_eval = LLMCallWithDataFrame(
             prompt_template="""What UIs changes are being implemented?'.
@@ -107,7 +112,7 @@ class TestLLMPipeline(unittest.TestCase):
             {record_details}""",
             fields=["title", "description", "acceptance_criteria"],
         )
-        print(llm_eval.call_llm(processed_df))
+        self.assertEqual(llm_eval.call_llm(processed_df), "LLM unavailable")
 
 
 class TestAgenticStep(unittest.TestCase):
