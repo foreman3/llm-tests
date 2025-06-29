@@ -6,6 +6,9 @@ from sklearn.cluster import DBSCAN
 from dotenv import load_dotenv
 from math import ceil
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -23,8 +26,8 @@ def openai_embedding_function(text: str) -> List[float]:
             model="text-embedding-3-small"
         )
         return response.data[0].embedding
-    except Exception as e:
-        print("Error generating embedding:", e)
+    except Exception as e:  # pragma: no cover - network errors
+        logger.error("Error generating embedding: %s", e)
         return []
 
 # ------------------------------------------------------------------

@@ -1,9 +1,17 @@
 """Utility functions for logging and input validation."""
 
+from __future__ import annotations
 
-def log_message(message):
-    """Print a message with a log prefix."""
-    print(f"[LOG] {message}")
+import logging
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def log_message(message: str) -> None:
+    """Log a message with an ``INFO`` level."""
+    logger.info(message)
 
 def validate_input(data, expected_type):
     """Validate that ``data`` is an instance of ``expected_type``."""
