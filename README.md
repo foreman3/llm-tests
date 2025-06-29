@@ -69,6 +69,9 @@ llm-orchestration
   basic facts is available in `knowledge_server/basic_knowledge.json` and can be
   loaded when starting the server:
 
+- **Knowledge ingest**: `KnowledgeIngestor` can read text files or URLs,
+  extract facts using an agent and store them in the knowledge server.
+
 ```python
 from knowledge_server import run_server
 server, thread = run_server(path="knowledge_server/basic_knowledge.json")
