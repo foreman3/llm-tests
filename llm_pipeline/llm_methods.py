@@ -423,7 +423,8 @@ class LLMCallStep(PipelineStep):
             try:
                 with open(cache_path, "r", encoding="utf-8") as f:
                     self.cache = json.load(f)
-            except Exception:
+            except Exception as exc:
+                logger.warning("Failed to load cache from %s: %s", cache_path, exc)
                 self.cache = {}
         self.system_prompt = (
             "You are evaluating records. The user will submit a record to be evaluated, and you should respond with only the evaluation. \n"
@@ -437,6 +438,7 @@ class LLMCallStep(PipelineStep):
         if prompt in self.cache:
             return self.cache[prompt]
         if self.client is None:
+            logger.debug("OPENAI_API_KEY not set; using offline fallback")
             response = "yes" if "ui" in prompt.lower() else "no"
         else:
             chat_completion = self.client.chat.completions.create(
@@ -452,8 +454,8 @@ class LLMCallStep(PipelineStep):
             try:
                 with open(self.cache_path, "w", encoding="utf-8") as f:
                     json.dump(self.cache, f)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Failed to save cache to %s: %s", self.cache_path, exc)
         return response
 
     def process(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -635,8 +637,8 @@ class AgenticGoalStep(PipelineStep):
                 from mcp import MCP_TOOLS
 
                 self.tools.update(MCP_TOOLS)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Failed to load MCP tools: %s", exc)
         self.mcp_servers = mcp_servers or []
         self.discover_mcp = discover_mcp
         for i, url in enumerate(self.mcp_servers):
@@ -648,8 +650,8 @@ class AgenticGoalStep(PipelineStep):
                     if discovered:
                         self.tools.update(discovered)
                         continue
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Failed to discover tools from %s: %s", url, exc)
             self.tools[f"mcp_server_{i}"] = self._make_mcp_tool(url)
         self.output_key = output_key
         self.max_steps = max_steps

@@ -9,7 +9,7 @@ description = "A reusable library for LLM-based pipelines."
 authors = [{name = "Bob Foreman"}]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 dependencies = [
     "pandas",
     "openai",

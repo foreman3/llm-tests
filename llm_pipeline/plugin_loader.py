@@ -14,11 +14,12 @@ def load_plugins(plugin_dir: str) -> List[Type[PipelineStep]]:
     if not path.exists():
         return steps
     for file in path.glob("*.py"):
-        spec = importlib.util.spec_from_file_location(file.stem, file)
+        module_name = f"plugin_{file.stem}"
+        spec = importlib.util.spec_from_file_location(module_name, file)
         if not spec or not spec.loader:
             continue
         module = importlib.util.module_from_spec(spec)
-        sys.modules[file.stem] = module
+        sys.modules[module_name] = module
         spec.loader.exec_module(module)
         for name, obj in inspect.getmembers(module, inspect.isclass):
             if issubclass(obj, PipelineStep) and obj is not PipelineStep:
