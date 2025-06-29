@@ -6,27 +6,31 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Load test data from CSV file into a DataFrame
-try:
-    df = pd.read_csv('./data/test_data_pipeline.csv', quoting=csv.QUOTE_ALL)
-except pd.errors.ParserError as e:
-    logger.error("Error reading CSV file: %s", e)
-    raise
 
-# Define a couple of processing steps.
+def main() -> None:
+    """Generate embeddings for the monster dataset."""
 
-# Generate one embedding from title & description.
-gen_embed = GenerateEmbeddingsStep(
-    output_key="embedding_title_desc",
-    fields=["title", "description"]
-)
+    # Load test data from CSV file into a DataFrame
+    try:
+        df = pd.read_csv('./data/test_data_pipeline.csv', quoting=csv.QUOTE_ALL)
+    except pd.errors.ParserError as e:
+        logger.error("Error reading CSV file: %s", e)
+        raise
 
-# Create the pipeline with all steps.
-pipeline = DataPipeline(steps=[gen_embed])
+    # Generate one embedding from title & description.
+    gen_embed = GenerateEmbeddingsStep(
+        output_key="embedding_title_desc",
+        fields=["title", "description"]
+    )
 
-# Run the pipeline on the DataFrame.
-processed_df = pipeline.run(df)
-count = len(processed_df)
+    pipeline = DataPipeline(steps=[gen_embed])
 
-logger.info("Processed record count: %s", count)
-processed_df.to_pickle('./data/monsters_with_embeddings.pkl')
+    processed_df = pipeline.run(df)
+    count = len(processed_df)
+
+    logger.info("Processed record count: %s", count)
+    processed_df.to_pickle('./data/monsters_with_embeddings.pkl')
+
+
+if __name__ == "__main__":
+    main()
