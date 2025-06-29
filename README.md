@@ -53,7 +53,7 @@ llm-orchestration
 ### Utilities
 - **Module**: `tools`
 - **Functions**:
-  - `log_message`: Logs messages for tracking.
+  - `log_message`: Uses Python's ``logging`` library to record progress.
   - `validate_input`: Validates input data for the pipeline.
 
 ### New Features

@@ -8,7 +8,10 @@ import hashlib
 import numpy as np
 import json
 import asyncio
+import logging
 from tools.utils import log_message, validate_input
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -213,8 +216,8 @@ def openai_embedding_function(text: str) -> List[float]:
     try:
         response = client.embeddings.create(input=text, model="text-embedding-3-small")
         return response.data[0].embedding
-    except Exception as e:
-        print("Error generating embedding:", e)
+    except Exception as e:  # pragma: no cover - network errors
+        logger.error("Error generating embedding: %s", e)
         return []
 
 

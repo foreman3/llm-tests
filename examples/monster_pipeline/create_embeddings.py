@@ -1,12 +1,16 @@
 import pandas as pd
 from llm_pipeline.pipeline import GenerateEmbeddingsStep, DataPipeline
 import csv
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 # Load test data from CSV file into a DataFrame
 try:
     df = pd.read_csv('./data/test_data_pipeline.csv', quoting=csv.QUOTE_ALL)
 except pd.errors.ParserError as e:
-    print(f"Error reading CSV file: {e}")
+    logger.error("Error reading CSV file: %s", e)
     raise
 
 # Define a couple of processing steps.
@@ -24,5 +28,5 @@ pipeline = DataPipeline(steps=[gen_embed])
 processed_df = pipeline.run(df)
 count = len(processed_df)
 
-print(f"Processed record count: {count}")
+logger.info("Processed record count: %s", count)
 processed_df.to_pickle('./data/monsters_with_embeddings.pkl')
