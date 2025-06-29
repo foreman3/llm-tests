@@ -1,5 +1,5 @@
 import pandas as pd
-from llm_pipeline.pipeline import DataPipeline, kNNFilterStep, LLMCallWithDataFrame
+from llm_pipeline.llm_methods import DataPipeline, kNNFilterStep, LLMCallWithDataFrame
 import csv
 import logging
 

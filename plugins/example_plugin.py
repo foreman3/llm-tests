@@ -1,6 +1,6 @@
 """Example plugin that adds a simple column to the pipeline data."""
 
-from llm_pipeline.pipeline import PipelineStep
+from llm_pipeline.llm_methods import PipelineStep
 import pandas as pd
 
 class ExamplePluginStep(PipelineStep):
