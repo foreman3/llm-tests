@@ -68,7 +68,14 @@ llm-orchestration
 - **MCP tool discovery**: `AgenticGoalStep` automatically queries remote MCP servers for available tools when possible.
 - **Knowledge server**: `knowledge_server` provides a minimal MCP server with a
   persistent knowledge store. It answers simple questions and falls back to
-  deterministic responses when `OPENAI_API_KEY` is not set.
+  deterministic responses when `OPENAI_API_KEY` is not set. A starter dataset of
+  basic facts is available in `knowledge_server/basic_knowledge.json` and can be
+  loaded when starting the server:
+
+```python
+from knowledge_server import run_server
+server, thread = run_server(path="knowledge_server/basic_knowledge.json")
+```
 
 ## Testing
 The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `LLMPipeline` class.

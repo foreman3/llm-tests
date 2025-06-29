@@ -38,3 +38,18 @@ def test_add_and_query():
     assert resp.json().get("answer") == "food"
 
     stop_test_server(server, thread)
+
+
+def test_load_basic_knowledge_and_query(tmp_path):
+    file_path = tmp_path / "basic.json"
+    file_path.write_text(json.dumps({"plant": [["needs", "water"]]}))
+
+    server, thread = start_test_server(path=str(file_path))
+    url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+
+    resp = requests.post(
+        f"{url}/query", json={"text": "What does a plant need?"}, timeout=5
+    )
+    assert resp.json().get("answer") == "water"
+
+    stop_test_server(server, thread)
