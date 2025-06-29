@@ -9,7 +9,6 @@ llm-orchestration
 ├── llm_pipeline
 │   ├── __init__.py
 │   ├── llm_methods.py
-│   ├── pipeline.py
 │   ├── plugin_loader.py
 │   └── vector_store.py
 ├── monster_pipeline
@@ -43,12 +42,10 @@ llm-orchestration
 
 
 ### LLM Processing Pipeline
-- **Module**: `llm_pipeline`
-- **Class**: `LLMPipeline`
-  - **Methods**:
-    - `define_steps`: Sets up the workflow for processing.
-    - `add_prompt`: Adds prompts to the pipeline.
-    - `process_batches`: Processes prepared data in batches.
+- **Module**: `llm_pipeline.llm_methods`
+- **Classes**:
+  - `DataPipeline`: runs a list of `PipelineStep` objects over a DataFrame.
+  - `DataFrameProcessor`: a chainable helper for common processing functions.
 
 ### Utilities
 - **Module**: `tools`
@@ -78,7 +75,7 @@ server, thread = run_server(path="knowledge_server/basic_knowledge.json")
 ```
 
 ## Testing
-The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `LLMPipeline` class.
+The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `DataPipeline` class.
 
 ### Running the tests
 Install the main requirements and additional test dependencies, then execute the test suite:
@@ -104,7 +101,7 @@ FAISS provides the index used by `VectorStore`. If your machine has a compatible
 replace `faiss-cpu` with `faiss-gpu`.
 
 ## Usage
-After setting up the project, you can use the `LLMPipeline` class to process data through the LLM pipeline. Refer to the individual module documentation for more details on usage.
+After setting up the project, you can use the `DataPipeline` or `DataFrameProcessor` classes from `llm_pipeline.llm_methods` to process data through the LLM pipeline. Refer to the individual module documentation for more details on usage.
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.

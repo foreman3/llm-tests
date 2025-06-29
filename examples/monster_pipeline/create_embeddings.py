@@ -1,5 +1,5 @@
 import pandas as pd
-from llm_pipeline.pipeline import GenerateEmbeddingsStep, DataPipeline
+from llm_pipeline.llm_methods import GenerateEmbeddingsStep, DataPipeline
 import csv
 import logging
 

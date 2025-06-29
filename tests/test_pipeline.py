@@ -1,7 +1,7 @@
 import unittest
 import os
 import pandas as pd
-from llm_pipeline.pipeline import (
+from llm_pipeline.llm_methods import (
     LLMCallStep,
     FixedProcessingStep,
     DataPipeline,

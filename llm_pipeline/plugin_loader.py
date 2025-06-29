@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import List, Type
 
-from .pipeline import PipelineStep
+from .llm_methods import PipelineStep
 
 
 def load_plugins(plugin_dir: str) -> List[Type[PipelineStep]]:

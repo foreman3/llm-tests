@@ -1,7 +1,6 @@
 README.md
 setup.py
 llm_pipeline/__init__.py
-llm_pipeline/pipeline.py
 llm_pipelines.egg-info/PKG-INFO
 llm_pipelines.egg-info/SOURCES.txt
 llm_pipelines.egg-info/dependency_links.txt
