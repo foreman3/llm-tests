@@ -108,11 +108,11 @@ replace `faiss-cpu` with `faiss-gpu`.
 After setting up the project, you can use the `DataPipeline` or `DataFrameProcessor` classes from `llm_pipeline.llm_methods` to process data through the LLM pipeline. Refer to the individual module documentation for more details on usage.
 
 ## Joust Game Example
-An additional example in `examples/joust_game` demonstrates a simple horizontal
-movement simulation inspired by the classic Joust game. The player's speed starts
-30% faster than the enemy and decreases by 5% with each level. Both the player
-and enemy wrap around the screen horizontally, while enemies maintain their
-movement direction when wrapping.
+An additional example in `examples/joust_game/joust.html` demonstrates a simple
+horizontal movement simulation implemented in JavaScript. The player's speed
+starts 30% faster than the enemy and decreases by 5% with each level. Both the
+player and enemy wrap around the screen horizontally, while enemies maintain
+their movement direction when wrapping.
 
 ## Contributing
 Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.

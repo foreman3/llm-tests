@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Joust Game Example</title>
+    <script>
+        class Player {
+            constructor(x, speed) {
+                this.x = x;
+                this.speed = speed;
+            }
+        }
+
+        class Enemy {
+            constructor(x, speed, direction) {
+                this.x = x;
+                this.speed = speed;
+                this.direction = direction; // 'left' or 'right'
+            }
+        }
+
+        class JoustGame {
+            constructor(width, enemySpeed = 5.0, level = 1) {
+                this.width = width;
+                this.enemySpeed = enemySpeed;
+                this.level = level;
+                this.updatePlayerSpeed();
+                this.player = new Player(width / 2, this.playerSpeed);
+                this.enemy = new Enemy(0, this.enemySpeed, 'right');
+            }
+
+            updatePlayerSpeed() {
+                let diff = 0.30 - 0.05 * (this.level - 1);
+                if (diff < 0) diff = 0;
+                this.playerSpeed = this.enemySpeed * (1 + diff);
+            }
+
+            wrapPosition(x) {
+                if (x < 0) {
+                    return this.width + x;
+                }
+                if (x >= this.width) {
+                    return x - this.width;
+                }
+                return x;
+            }
+
+            movePlayer(direction) {
+                if (direction === 'left') {
+                    this.player.x -= this.player.speed;
+                } else {
+                    this.player.x += this.player.speed;
+                }
+                this.player.x = this.wrapPosition(this.player.x);
+            }
+
+            moveEnemy() {
+                if (this.enemy.direction === 'left') {
+                    this.enemy.x -= this.enemy.speed;
+                    if (this.enemy.x < 0) {
+                        this.enemy.x = this.wrapPosition(this.enemy.x);
+                    }
+                } else {
+                    this.enemy.x += this.enemy.speed;
+                    if (this.enemy.x >= this.width) {
+                        this.enemy.x = this.wrapPosition(this.enemy.x);
+                    }
+                }
+            }
+        }
+
+        // Export classes for Node-based tests
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = { Player, Enemy, JoustGame };
+        }
+    </script>
+</head>
+<body>
+    <!-- Example Joust Game logic implemented in JavaScript -->
+</body>
+</html>
