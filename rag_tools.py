@@ -1,15 +1,10 @@
 """Tools for basic RAG workflows."""
-
 from __future__ import annotations
-
 import os
 import re
 from typing import List
-
 import pandas as pd
-
 from llm_pipeline.llm_methods import openai_embedding_function
-
 from llama_index.core import (
     Document,
     VectorStoreIndex,
@@ -17,7 +12,7 @@ from llama_index.core import (
     load_index_from_storage,
     Settings,
 )
-from llama_index.core.embeddings import MockEmbedding
+from llama_index.embeddings import MockEmbedding
 from llama_index.embeddings.openai import OpenAIEmbedding
 
 

@@ -2,8 +2,6 @@ import unittest
 import os
 import tempfile
 from pathlib import Path
-import pandas as pd
-from pathlib import Path
 from rag_tools import rag_tools
 
 class TestRAGTools(unittest.TestCase):
@@ -25,7 +23,6 @@ class TestRAGTools(unittest.TestCase):
 
     def test_store_and_query(self):
         text = "Alpha one. Beta two. Gamma three."
-        store_path = Path("./tests/store.pkl")
         rt = rag_tools()
         rt.store_chunks(text, str(store_path), chunk_size=12)
         assert store_path.exists()
