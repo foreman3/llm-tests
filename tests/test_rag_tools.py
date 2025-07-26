@@ -1,12 +1,13 @@
 import unittest
 import os
 import pandas as pd
+from pathlib import Path
 from rag_tools import rag_tools
 
 class TestRAGTools(unittest.TestCase):
 
     def test_chunk_text_from_file(self):
-        file_path = "./tests/sample.txt"
+        file_path = Path("./tests/sample.txt")
         file_path.write_text("One. Two. Three.")
         rt = rag_tools()
         df = rt.chunk_text(str(file_path), chunk_size=10)
@@ -16,7 +17,7 @@ class TestRAGTools(unittest.TestCase):
 
     def test_store_and_query(self):
         text = "Alpha one. Beta two. Gamma three."
-        store_path = "./tests/store.pkl"
+        store_path = Path("./tests/store.pkl")
         rt = rag_tools()
         rt.store_chunks(text, str(store_path), chunk_size=12)
         assert store_path.exists()
