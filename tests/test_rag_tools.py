@@ -3,7 +3,6 @@ import os
 import tempfile
 from pathlib import Path
 import pandas as pd
-from pathlib import Path
 from rag_tools import rag_tools
 
 class TestRAGTools(unittest.TestCase):
