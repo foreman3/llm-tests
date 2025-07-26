@@ -1,0 +1,7 @@
+{
+    "java.test.runner": "junit",
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "jest.pathToJest": "node_modules/.bin/jest",
+    "mocha.file": "tests/**/*.test.js"
+}

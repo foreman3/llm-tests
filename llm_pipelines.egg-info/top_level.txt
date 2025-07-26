@@ -1,4 +1,6 @@
+knowledge_server
 llm_pipeline
-monster_pipeline
+mcp
+plugins
 tests
 tools
