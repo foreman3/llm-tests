@@ -6,3 +6,4 @@ transformers
 python-dotenv
 requests
 faiss-cpu
+llama-index
