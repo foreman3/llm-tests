@@ -8,18 +8,43 @@ from typing import List
 
 import pandas as pd
 
-from llm_pipeline.vector_store import VectorStore
-from llm_pipeline.llm_methods import (
-    generate_embeddings,
-    openai_embedding_function,
+from llm_pipeline.llm_methods import openai_embedding_function
+
+from llama_index.core import (
+    Document,
+    VectorStoreIndex,
+    StorageContext,
+    load_index_from_storage,
+    Settings,
 )
+from llama_index.core.embeddings import MockEmbedding
+from llama_index.embeddings.openai import OpenAIEmbedding
 
 
 class rag_tools:
-    """Utility class to chunk text and persist embeddings to a ``VectorStore``."""
+    """Utility class to chunk text and persist embeddings using ``LlamaIndex``."""
 
     def __init__(self, embedding_function=openai_embedding_function) -> None:
         self.embedding_function = embedding_function
+
+    def _embed_model(self):
+        """Return a LlamaIndex embedding model matching ``embedding_function``."""
+        if self.embedding_function is openai_embedding_function:
+            if os.getenv("OPENAI_API_KEY"):
+                return OpenAIEmbedding()
+            return MockEmbedding(embed_dim=32)
+
+        class _FuncEmbed:
+            def __init__(self, func):
+                self.func = func
+                self.embed_dim = len(func("test"))
+
+            def __call__(self, texts):
+                if isinstance(texts, str):
+                    return [self.func(texts)]
+                return [self.func(t) for t in texts]
+
+        return _FuncEmbed(self.embedding_function)
 
     # ------------------------------------------------------------------
     # Text loading and chunking
@@ -82,30 +107,35 @@ class rag_tools:
         *,
         chunk_size: int = 500,
         overlap: int = 0,
-    ) -> VectorStore:
-        """Create a ``VectorStore`` from ``source`` and persist it."""
+    ) -> VectorStoreIndex:
+        """Create a ``VectorStoreIndex`` from ``source`` and persist it."""
         df = self.chunk_text(source, chunk_size=chunk_size, overlap=overlap)
-        df = generate_embeddings(
-            df, embedding_function=self.embedding_function, fields=["text"], output_key="embedding"
-        )
-        store = VectorStore(len(df["embedding"].iloc[0]), store_path=store_path)
-        store.add(df["chunk_id"], df["embedding"])
+        Settings.embed_model = self._embed_model()
+        Settings.llm = None
+        documents = [Document(text=row["text"], id_=row["chunk_id"]) for _, row in df.iterrows()]
+        index = VectorStoreIndex.from_documents(documents)
+        index.storage_context.persist(persist_dir=store_path)
         df[["chunk_id", "text"]].to_csv(f"{store_path}.csv", index=False)
-        return store
+        return index
 
     def query_store(self, query: str, store_path: str, k: int = 5) -> pd.DataFrame:
-        """Query a stored ``VectorStore`` with ``query`` and return top ``k`` chunks."""
-        store = VectorStore(1, store_path=store_path)
-        embedding = self.embedding_function(query)
-        results = store.query(embedding, k)
+        """Query a stored ``VectorStoreIndex`` with ``query`` and return top ``k`` chunks."""
+        Settings.embed_model = self._embed_model()
+        Settings.llm = None
+        storage_context = StorageContext.from_defaults(persist_dir=store_path)
+        index = load_index_from_storage(storage_context)
+        retriever = index.as_retriever(similarity_top_k=k)
+        results = retriever.retrieve(query)
         if not results:
             return pd.DataFrame(columns=["chunk_id", "text", "distance"])
         mapping = pd.read_csv(f"{store_path}.csv")
         rows = []
-        for chunk_id, dist in results:
+        for item in results:
+            chunk_id = item.node.ref_doc_id or item.node.node_id
             text = mapping.loc[mapping["chunk_id"] == chunk_id, "text"].values
             text_str = text[0] if len(text) > 0 else ""
-            rows.append({"chunk_id": chunk_id, "text": text_str, "distance": dist})
+            distance = 1 - float(item.score)
+            rows.append({"chunk_id": chunk_id, "text": text_str, "distance": distance})
         return pd.DataFrame(rows)
 
 

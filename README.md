@@ -56,7 +56,7 @@ llm-orchestration
 ### New Features
 - **Response caching**: `LLMCallStep` can persist responses to disk to avoid repeated API calls.
 - **Asynchronous pipeline**: `AsyncDataPipeline` runs steps concurrently when supported.
-- **RAG tools**: `rag_tools` can chunk text files, build a vector store, and query it.
+- **RAG tools**: `rag_tools` can chunk text files, build a vector store using LlamaIndex, and query it.
 - **Vector store**: `VectorStore` allows embeddings to be persisted and queried using FAISS.
 - **Data validation & logging**: `DataPipeline` automatically validates inputs and logs each step.
 - **Summarization step**: `SummarizationStep` generates a report for the entire DataFrame.
