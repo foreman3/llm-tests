@@ -58,6 +58,7 @@ llm-orchestration
 - **Asynchronous pipeline**: `AsyncDataPipeline` runs steps concurrently when supported.
 - **RAG tools**: `rag_tools` can chunk text files, build a vector store using LlamaIndex, and query it.
 - **Vector store**: `VectorStore` allows embeddings to be persisted and queried using FAISS.
+- **Chroma ingest**: `ChromaIngestPipeline` stores text file chunks with embeddings in a Chroma vector store.
 - **Data validation & logging**: `DataPipeline` automatically validates inputs and logs each step.
 - **Summarization step**: `SummarizationStep` generates a report for the entire DataFrame.
 - **Plugin architecture**: additional `PipelineStep` classes can be discovered from a plugin directory.
