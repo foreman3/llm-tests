@@ -109,6 +109,8 @@ class rag_tools:
         overlap: int = 0,
     ) -> VectorStoreIndex:
         """Create a ``VectorStoreIndex`` from ``source`` and persist it."""
+        if os.path.isfile(store_path):
+            os.remove(store_path)
         df = self.chunk_text(source, chunk_size=chunk_size, overlap=overlap)
         Settings.embed_model = self._embed_model()
         Settings.llm = None
