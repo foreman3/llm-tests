@@ -1,0 +1,135 @@
+"""Demonstration pipeline for ingesting text files into Chroma."""
+
+from __future__ import annotations
+
+import os
+import re
+from typing import List
+
+import pandas as pd
+from llm_pipeline.llm_methods import openai_embedding_function
+from llama_index.core import (
+    Document,
+    StorageContext,
+    VectorStoreIndex,
+    Settings,
+    load_index_from_storage,
+)
+from llama_index.core.embeddings import MockEmbedding
+from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.vector_stores.chroma import ChromaVectorStore
+
+
+class ChromaIngestPipeline:
+    """Pipeline that loads text files and stores embeddings in Chroma."""
+
+    def __init__(self, embedding_function=openai_embedding_function) -> None:
+        self.embedding_function = embedding_function
+
+    def _embed_model(self):
+        """Return a LlamaIndex embedding model matching ``embedding_function``."""
+        if self.embedding_function is openai_embedding_function:
+            if os.getenv("OPENAI_API_KEY"):
+                return OpenAIEmbedding()
+            return MockEmbedding(embed_dim=32)
+
+        class _FuncEmbed:
+            def __init__(self, func):
+                self.func = func
+                self.embed_dim = len(func("test"))
+
+            def __call__(self, texts):
+                if isinstance(texts, str):
+                    return [self.func(texts)]
+                return [self.func(t) for t in texts]
+
+        return _FuncEmbed(self.embedding_function)
+
+    def _chunk_text(self, text: str, *, chunk_size: int, overlap: int) -> List[str]:
+        sentences = re.split(r"(?<=[.!?])\s+", text.strip()) if text else []
+        chunks: List[str] = []
+        current = ""
+        for sent in sentences:
+            if len(current) + len(sent) + 1 > chunk_size and current:
+                chunks.append(current.strip())
+                if overlap > 0:
+                    current = current[-overlap:].strip() + " " + sent
+                else:
+                    current = sent
+            else:
+                current = f"{current} {sent}".strip()
+        if current:
+            chunks.append(current.strip())
+        return chunks
+
+    def ingest_folder(
+        self,
+        folder: str,
+        persist_path: str,
+        *,
+        chunk_size: int = 500,
+        overlap: int = 0,
+    ) -> VectorStoreIndex:
+        """Read ``folder`` and store text chunks in a Chroma vector store."""
+        documents: List[Document] = []
+        rows = []
+        for root, _, files in os.walk(folder):
+            for name in files:
+                if name.lower().endswith(".txt"):
+                    path = os.path.join(root, name)
+                    with open(path, "r", encoding="utf-8") as fh:
+                        text = fh.read()
+                    for i, chunk in enumerate(
+                        self._chunk_text(text, chunk_size=chunk_size, overlap=overlap)
+                    ):
+                        chunk_id = f"{name}_{i}"
+                        documents.append(
+                            Document(text=chunk, id_=chunk_id, metadata={"filename": name})
+                        )
+                        rows.append({"chunk_id": chunk_id, "filename": name, "text": chunk})
+
+        Settings.embed_model = self._embed_model()
+        Settings.llm = None
+        vector_store = ChromaVectorStore.from_params(
+            collection_name="chunks", persist_dir=persist_path
+        )
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        index = VectorStoreIndex.from_documents(
+            documents, storage_context=storage_context
+        )
+        index.storage_context.persist(persist_dir=persist_path)
+        pd.DataFrame(rows).to_csv(f"{persist_path}.csv", index=False)
+        return index
+
+    def load_index(self, persist_path: str) -> VectorStoreIndex:
+        """Load a persisted ``VectorStoreIndex`` from ``persist_path``."""
+        vector_store = ChromaVectorStore.from_params(
+            collection_name="chunks", persist_dir=persist_path
+        )
+        storage_context = StorageContext.from_defaults(
+            persist_dir=persist_path, vector_store=vector_store
+        )
+        return load_index_from_storage(storage_context)
+
+    def query_store(self, query: str, persist_path: str, k: int = 5) -> pd.DataFrame:
+        """Query the stored index and return matching chunks."""
+        Settings.embed_model = self._embed_model()
+        Settings.llm = None
+        index = self.load_index(persist_path)
+        retriever = index.as_retriever(similarity_top_k=k)
+        results = retriever.retrieve(query)
+        if not results:
+            return pd.DataFrame(columns=["filename", "text", "distance"])
+        mapping = pd.read_csv(f"{persist_path}.csv")
+        rows = []
+        for item in results:
+            chunk_id = item.node.ref_doc_id or item.node.node_id
+            rec = mapping.loc[mapping["chunk_id"] == chunk_id]
+            filename = rec["filename"].values[0] if not rec.empty else ""
+            text = rec["text"].values[0] if not rec.empty else ""
+            distance = 1 - float(item.score)
+            rows.append({"filename": filename, "text": text, "distance": distance})
+        return pd.DataFrame(rows)
+
+
+__all__ = ["ChromaIngestPipeline"]
