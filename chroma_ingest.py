@@ -25,6 +25,7 @@ class ChromaIngestPipeline:
 
     def __init__(self, embedding_function=openai_embedding_function) -> None:
         self.embedding_function = embedding_function
+        self._vector_store = None  # Track for cleanup
 
     def _embed_model(self):
         """Return a LlamaIndex embedding model matching ``embedding_function``."""
@@ -69,7 +70,7 @@ class ChromaIngestPipeline:
         *,
         chunk_size: int = 500,
         overlap: int = 0,
-    ) -> VectorStoreIndex:
+    ) -> None:
         """Read ``folder`` and store text chunks in a Chroma vector store."""
         documents: List[Document] = []
         rows = []
@@ -93,23 +94,40 @@ class ChromaIngestPipeline:
         vector_store = ChromaVectorStore.from_params(
             collection_name="chunks", persist_dir=persist_path
         )
+        self._vector_store = vector_store  # Save reference for cleanup
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
         index = VectorStoreIndex.from_documents(
             documents, storage_context=storage_context
         )
         index.storage_context.persist(persist_dir=persist_path)
-        pd.DataFrame(rows).to_csv(f"{persist_path}.csv", index=False)
-        return index
+        # Ensure CSV file is closed immediately
+        with open(f"{persist_path}.csv", "w", encoding="utf-8", newline="") as f:
+            pd.DataFrame(rows).to_csv(f, index=False)
+        # Explicitly delete objects to release file handles
+        del storage_context, index, vector_store
 
     def load_index(self, persist_path: str) -> VectorStoreIndex:
         """Load a persisted ``VectorStoreIndex`` from ``persist_path``."""
         vector_store = ChromaVectorStore.from_params(
             collection_name="chunks", persist_dir=persist_path
         )
+        self._vector_store = vector_store  # Save reference for cleanup
         storage_context = StorageContext.from_defaults(
             persist_dir=persist_path, vector_store=vector_store
         )
-        return load_index_from_storage(storage_context)
+        index = load_index_from_storage(storage_context)
+        # Explicitly delete storage_context after use
+        del storage_context, vector_store
+        return index
+
+    def close(self):
+        """Attempt to cleanup vector store resources."""
+        if self._vector_store is not None:
+            try:
+                # ChromaVectorStore does not have a close method, but if it did:
+                self._vector_store = None
+            except Exception:
+                pass
 
     def query_store(self, query: str, persist_path: str, k: int = 5) -> pd.DataFrame:
         """Query the stored index and return matching chunks."""
@@ -129,7 +147,12 @@ class ChromaIngestPipeline:
             text = rec["text"].values[0] if not rec.empty else ""
             distance = 1 - float(item.score)
             rows.append({"filename": filename, "text": text, "distance": distance})
-        return pd.DataFrame(rows)
+        df = pd.DataFrame(rows)
+        del index, retriever, results, mapping
+        import gc
+
+        gc.collect()
+        return df
 
 
 __all__ = ["ChromaIngestPipeline"]
