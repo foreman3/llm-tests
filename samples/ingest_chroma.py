@@ -1,5 +1,11 @@
 """Simple example to ingest text files into a persistent Chroma store."""
 
+import sys
+import os
+
+# Add the parent directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from chroma_ingest import ChromaIngestPipeline
 
 

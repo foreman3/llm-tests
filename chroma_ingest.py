@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import List
+import openai
 
 import pandas as pd
 from llm_pipeline.llm_methods import openai_embedding_function
@@ -147,6 +148,38 @@ class ChromaIngestPipeline:
 
         gc.collect()
         return df
+
+    def answer_with_llm(self, query: str, persist_path: str, k: int = 5) -> str:
+        """
+        Retrieve top-k relevant chunks and use OpenAI o4_mini model to answer the query.
+        """
+        import openai
+
+        # Step 1: Retrieve top-k relevant chunks
+        df = self.query_store(query, persist_path, k=k)
+        if df.empty:
+            return "No relevant context found to answer the question."
+
+        # Step 2: Concatenate retrieved texts as context
+        context = "\n\n".join(df["text"].tolist())
+
+        # Step 3: Call OpenAI o4_mini model
+        prompt = (
+            f"Answer the following question using the provided context.\n\n"
+            f"Context:\n{context}\n\n"
+            f"Question: {query}\n\n"
+            f"Answer:"
+        )
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=512,
+            temperature=0.2,
+        )
+        return response.choices[0].message.content.strip()
 
 
 __all__ = ["ChromaIngestPipeline"]
