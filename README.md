@@ -60,6 +60,9 @@ llm-orchestration
 - **Vector store**: `VectorStore` allows embeddings to be persisted and queried using FAISS.
 - **Chroma ingest**: `ChromaIngestPipeline` now chunks text using LlamaIndex's
   `SimpleNodeParser` and stores the embeddings in a Chroma vector store.
+- **Chroma ingestion sample**: `samples/ingest_chroma.py` ingests the text under
+  `samples/sourceText` and persists the embeddings. `samples/query_chroma.py`
+  demonstrates querying the stored vector database.
 - **Data validation & logging**: `DataPipeline` automatically validates inputs and logs each step.
 - **Summarization step**: `SummarizationStep` generates a report for the entire DataFrame.
 - **Plugin architecture**: additional `PipelineStep` classes can be discovered from a plugin directory.
