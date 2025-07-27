@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import re
 from typing import List
 
 import pandas as pd
@@ -15,6 +14,7 @@ from llama_index.core import (
     Settings,
     load_index_from_storage,
 )
+from llama_index.core.node_parser import SimpleNodeParser
 from llama_index.core.embeddings import MockEmbedding
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -47,21 +47,15 @@ class ChromaIngestPipeline:
         return _FuncEmbed(self.embedding_function)
 
     def _chunk_text(self, text: str, *, chunk_size: int, overlap: int) -> List[str]:
-        sentences = re.split(r"(?<=[.!?])\s+", text.strip()) if text else []
-        chunks: List[str] = []
-        current = ""
-        for sent in sentences:
-            if len(current) + len(sent) + 1 > chunk_size and current:
-                chunks.append(current.strip())
-                if overlap > 0:
-                    current = current[-overlap:].strip() + " " + sent
-                else:
-                    current = sent
-            else:
-                current = f"{current} {sent}".strip()
-        if current:
-            chunks.append(current.strip())
-        return chunks
+        """Split ``text`` into chunks using ``SimpleNodeParser``."""
+        if not text:
+            return []
+
+        parser = SimpleNodeParser.from_defaults(
+            chunk_size=chunk_size, chunk_overlap=overlap
+        )
+        nodes = parser.get_nodes_from_documents([Document(text=text)])
+        return [node.text for node in nodes]
 
     def ingest_folder(
         self,
