@@ -165,7 +165,7 @@ class ChromaIngestPipeline:
 
         # Step 3: Call OpenAI o4_mini model
         prompt = (
-            f"Answer the following question using the provided context.\n\n"
+            f"Answer the following question using the provided context.  Deduplicate information to provide a clean response\n\n"
             f"Context:\n{context}\n\n"
             f"Question: {query}\n\n"
             f"Answer:"
