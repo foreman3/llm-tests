@@ -183,3 +183,42 @@ class ChromaIngestPipeline:
 
 
 __all__ = ["ChromaIngestPipeline"]
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Ingest text files into Chroma vector store."
+    )
+    parser.add_argument(
+        "--source_folder",
+        required=True,
+        help="Folder containing .txt files to ingest",
+    )
+    parser.add_argument(
+        "--dest_folder",
+        required=True,
+        help="Destination folder for Chroma store",
+    )
+    parser.add_argument(
+        "--chunk_size",
+        type=int,
+        default=500,
+        help="Chunk size for splitting text",
+    )
+    parser.add_argument(
+        "--overlap", type=int, default=0, help="Chunk overlap"
+    )
+    args = parser.parse_args()
+
+    pipeline = ChromaIngestPipeline()
+    print(
+        f"Ingesting from '{args.source_folder}' to '{args.dest_folder}' ..."
+    )
+    pipeline.ingest_folder(
+        args.source_folder,
+        args.dest_folder,
+        chunk_size=args.chunk_size,
+        overlap=args.overlap,
+    )
+    print("Ingestion complete.")
