@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from typing import List, Dict
+import argparse
 
 from fastmcp import FastMCP
 
@@ -91,11 +92,20 @@ def knn_query_tool(query: str, k: int = 5) -> str:
     return str(results)
 
 if __name__ == "__main__":
-    logger.info(f" MCP server started on port {os.getenv('PORT', 8080)}")
+
+
+    parser = argparse.ArgumentParser(description="General Query MCP Server")
+    parser.add_argument("--chroma_store", type=str, default="./samples/store", help="Path to Chroma store directory")
+    parser.add_argument("--port", type=int, default=8080, help="Port to serve on")
+    args = parser.parse_args()
+
+    CHROMA_DB_PATH = args.chroma_store
+
+    logger.info(f" MCP server started on port {args.port}, using Chroma store at '{CHROMA_DB_PATH}'")
     asyncio.run(
         mcp.run_async(
             transport="streamable-http",
             host="127.0.0.1",
-            port=int(os.getenv("PORT", 8080)),
+            port=args.port,
         )
     )
