@@ -69,19 +69,6 @@ llm-orchestration
 - **Agentic goal step**: `AgenticGoalStep` now supports multi-step tool use and can load built-in MCP tools for advanced agent behavior.
 - **MCP servers**: remote MCP servers can be listed for use by `AgenticGoalStep` to augment local tools.
 - **MCP tool discovery**: `AgenticGoalStep` automatically queries remote MCP servers for available tools when possible.
-- **Knowledge server**: `knowledge_server` provides a minimal MCP server with a
-  persistent knowledge store. It answers simple questions and falls back to
-  deterministic responses when `OPENAI_API_KEY` is not set. A starter dataset of
-  basic facts is available in `knowledge_server/basic_knowledge.json` and can be
-  loaded when starting the server:
-
-- **Knowledge ingest**: `KnowledgeIngestor` can read text files or URLs,
-  extract facts using an agent and store them in the knowledge server.
-
-```python
-from knowledge_server import run_server
-server, thread = run_server(path="knowledge_server/basic_knowledge.json")
-```
 
 ## Testing
 The project includes a set of basic test cases located in the `tests` directory to ensure the functionality of the `DataPipeline` class.

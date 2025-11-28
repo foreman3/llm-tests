@@ -21,6 +21,14 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # ------------------------------------------------------------------
+# Connectivity toggle
+# ------------------------------------------------------------------
+def _use_online() -> bool:
+    """Return True if network LLM calls/embeddings should be used."""
+    return os.getenv("LLM_PIPELINES_ONLINE", "").lower() in ("1", "true", "yes")
+
+
+# ------------------------------------------------------------------
 # Utility: OpenAI embedding function (default implementation)
 # ------------------------------------------------------------------
 def openai_embedding_function(text: str) -> List[float]:
@@ -31,7 +39,7 @@ def openai_embedding_function(text: str) -> List[float]:
     that the rest of the pipeline can operate without network access.
     """
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    if not api_key or not _use_online():
         digest = hashlib.sha256(text.encode("utf-8")).digest()
         return [b / 255 for b in digest[:32]]
 
@@ -432,7 +440,7 @@ class LLMCallStep(PipelineStep):
             "The requested evaluation is:"
         )
         api_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=api_key) if api_key else None
+        self.client = OpenAI(api_key=api_key) if (api_key and _use_online()) else None
 
     def _get_llm_response(self, prompt: str) -> str:
         if prompt in self.cache:
@@ -587,7 +595,7 @@ class LLMCallWithDataFrame:
             "You are processing a user request against a set of records.  Please respond to the request as directed, without any additional comments or text.\n\n"
         )
         api_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=api_key) if api_key else None
+        self.client = OpenAI(api_key=api_key) if (api_key and _use_online()) else None
 
     def create_prompt(self, df: pd.DataFrame) -> str:
         def create_record_details(row: pd.Series) -> str:
@@ -656,7 +664,7 @@ class AgenticGoalStep(PipelineStep):
         self.output_key = output_key
         self.max_steps = max_steps
         api_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=api_key) if api_key else None
+        self.client = OpenAI(api_key=api_key) if (api_key and _use_online()) else None
 
     def _make_mcp_tool(
         self, url: str, name: str | None = None, desc: str | None = None

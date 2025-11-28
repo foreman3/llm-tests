@@ -1,6 +1,0 @@
-knowledge_server
-llm_pipeline
-mcp
-plugins
-tests
-tools
